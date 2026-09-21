@@ -160,6 +160,20 @@ export const getEventData = (
   const tags           = retrieveEventValue( eventObject, 'tags', '' ) ?? ''
   const type           = retrieveEventValue( eventObject, 'type', 'box' )
   const showOnTimeline = retrieveEventValue( eventObject, 'showOnTimeline', 'false' )
+  const rawYearAbsolute = retrieveOptionalEventValue( eventObject, 'yearAbsolute', ['yearAbsolute', 'year-absolute'] )
+  const rawYearLocale = retrieveOptionalEventValue( eventObject, 'yearLocale', ['yearLocale', 'year-locale'] )
+  const rawYearPrecision = retrieveOptionalEventValue( eventObject, 'yearPrecision', ['yearPrecision', 'year-precision'] )
+  const rawYearScale = retrieveOptionalEventValue( eventObject, 'yearScale', ['yearScale', 'year-scale'] )
+  const rawYearUnit = retrieveOptionalEventValue( eventObject, 'yearUnit', ['yearUnit', 'year-unit'] )
+  const hasYearDisplayOptions = [
+    rawYearAbsolute,
+    rawYearLocale,
+    rawYearPrecision,
+    rawYearScale,
+    rawYearUnit,
+  ].some(( value ) => {
+    return value !== undefined && value !== ''
+  })
 
   const eventData: EventDataObject = {
     classes,
@@ -175,11 +189,53 @@ export const getEventData = (
     showOnTimeline: !!showOnTimeline,
     startDate,
     tags,
-    type
+    type,
+    yearAbsolute: parseOptionalBoolean( rawYearAbsolute ),
+    yearLocale: rawYearLocale,
+    yearPrecision: parseOptionalNumber( rawYearPrecision ),
+    yearScale: parseOptionalNumber( rawYearScale ),
+    yearUnit: hasYearDisplayOptions ? rawYearUnit : undefined,
   }
 
   logger( 'getEventData | full event:', { eventData })
   return eventData
+}
+
+const retrieveOptionalEventValue = (
+  eventData: HTMLElement | FrontMatterCache,
+  datasetKey: string,
+  frontMatterKeys: string[],
+): string | undefined => {
+  if ( isHTMLElementType( eventData )) {
+    const value = eventData.dataset[datasetKey]
+    return value
+  }
+
+  for ( const key of frontMatterKeys ) {
+    if ( Object.prototype.hasOwnProperty.call( eventData, key )) {
+      const value = eventData[key]
+      return value === undefined || value === null ? undefined : value.toString()
+    }
+  }
+
+  return undefined
+}
+
+const parseOptionalNumber = ( value: string | undefined ): number | undefined => {
+  if ( value === undefined || value === '' ) {
+    return undefined
+  }
+
+  const parsedValue = Number( value )
+  return Number.isFinite( parsedValue ) ? parsedValue : undefined
+}
+
+const parseOptionalBoolean = ( value: string | undefined ): boolean | undefined => {
+  if ( value === undefined || value === '' ) {
+    return undefined
+  }
+
+  return value.toString().toLowerCase() === 'true'
 }
 
 const retrieveEventValue = (

@@ -112,6 +112,11 @@ export class TimelineCommandProcessor {
     newEventElement.setAttribute( 'data-classes', '' )
     newEventElement.setAttribute( 'data-color', '' )
     newEventElement.setAttribute( 'data-era', '' )
+    newEventElement.setAttribute( 'data-year-scale', '' )
+    newEventElement.setAttribute( 'data-year-unit', '' )
+    newEventElement.setAttribute( 'data-year-locale', '' )
+    newEventElement.setAttribute( 'data-year-precision', '' )
+    newEventElement.setAttribute( 'data-year-absolute', '' )
     newEventElement.setAttribute( 'data-group', '' )
     newEventElement.setAttribute( 'data-path', '' )
     newEventElement.setAttribute( 'data-points-to', '' )
@@ -145,6 +150,11 @@ export class TimelineCommandProcessor {
       classes: '',
       color: '',
       era: '',
+      yearScale: '',
+      yearUnit: '',
+      yearLocale: '',
+      yearPrecision: '',
+      yearAbsolute: '',
       group: '',
       path: '',
       pointsTo: '',

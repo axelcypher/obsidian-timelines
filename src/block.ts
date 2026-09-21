@@ -7,7 +7,8 @@ import {
   EventDataObject,
   HorizontalTimelineInput,
   InternalTimelineArgs,
-  TimelinesSettings
+  TimelinesSettings,
+  YearDisplayOptions,
 } from './types'
 import {
   buildTimelineDate,
@@ -76,6 +77,23 @@ export class TimelineBlockProcessor {
       case 'zoomOutLimit':
       case 'divHeight':
         this.args[tag] = parseInt( value )
+        break
+      case 'yearScale':
+        if ( Number.isFinite( Number( value )) && Number( value ) > 0 ) {
+          this.args[tag] = Number( value )
+        } else {
+          console.warn( `Invalid yearScale '${value}'. Expected a positive number.` )
+        }
+        break
+      case 'yearPrecision':
+        if ( Number.isFinite( Number( value )) && Number( value ) >= 0 ) {
+          this.args[tag] = Number( value )
+        } else {
+          console.warn( `Invalid yearPrecision '${value}'. Expected zero or a positive number.` )
+        }
+        break
+      case 'yearAbsolute':
+        this.args[tag] = value.toLowerCase() === 'true'
         break
       default:
         this.args[tag] = value
@@ -149,6 +167,11 @@ export class TimelineBlockProcessor {
           startDate,
           tags,
           type,
+          yearAbsolute,
+          yearLocale,
+          yearPrecision,
+          yearScale,
+          yearUnit,
         } = eventData
 
         const color = initialColor === 'grey' ? 'gray' : initialColor
@@ -184,8 +207,19 @@ export class TimelineBlockProcessor {
 
         const imgUrl = getImgUrl( this.appVault, eventImg )
         const maxDigits = parseInt( this.settings.maxDigits )
-        const cleanedStartDateObject = cleanDate( startDate, maxDigits, this.args.dateFormat )
-        const cleanedEndDateObject   = cleanDate( endDate, maxDigits, this.args.dateFormat )
+        const yearDisplayOptions: YearDisplayOptions = {
+          absolute: yearAbsolute ?? this.args.yearAbsolute,
+          locale: yearLocale ?? this.args.yearLocale,
+          precision: yearPrecision ?? this.args.yearPrecision,
+          scale: yearScale ?? this.args.yearScale,
+          unit: yearUnit ?? this.args.yearUnit,
+        }
+        const cleanedStartDateObject = cleanDate(
+          startDate, maxDigits, this.args.dateFormat, yearDisplayOptions
+        )
+        const cleanedEndDateObject = cleanDate(
+          endDate, maxDigits, this.args.dateFormat, yearDisplayOptions
+        )
 
         if ( !cleanedStartDateObject || !cleanedEndDateObject ) {
           throw new Error( 'either the start or end date object is missing' )

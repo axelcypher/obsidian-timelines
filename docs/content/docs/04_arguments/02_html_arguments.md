@@ -69,6 +69,21 @@ Note: Currently only assets specified via `http` or `absolute local path` will r
   - Adds this text to the date span in the timeline as an era designation. Useful for fictional calendars.
   - Applied after the date is formatted. So `2300` with the era set to `AB` would display `2300 AB`.
 
+## Large year display
+
+Large years can be scaled and localized without changing their value for sorting. All options are optional and may be
+combined:
+
+- `data-year-scale`: any positive divisor, such as `1000`, `1000000`, or `1000000000`
+- `data-year-unit`: text appended to the displayed value, such as `Tsd`, `Mio`, or `Mrd`
+- `data-year-locale`: locale for separators, such as `de-DE`
+- `data-year-precision`: maximum decimal places; defaults to `3`
+- `data-year-absolute`: `true` hides the minus sign, which is useful for "years ago" timelines
+
+For example, an event with `data-start-date="-4560000000"`, `data-year-scale="1000000000"`,
+`data-year-unit="Mrd"`, `data-year-locale="de-DE"`, and `data-year-absolute="true"` displays as `4,56 Mrd`.
+The same options can be set for a whole timeline through its codeblock arguments and overridden here per event.
+
 ## Group (`data-group`)
   - Optional
   - Allows users to specify a group for the event. This is useful for grouping events together in the timeline.

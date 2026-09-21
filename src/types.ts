@@ -35,6 +35,14 @@ export interface CleanedDateResultObject {
   year: number
 }
 
+export interface YearDisplayOptions {
+  absolute?: boolean,
+  locale?: string,
+  precision?: number,
+  scale?: number,
+  unit?: string,
+}
+
 export interface CardContainer {
   id: string,
   body: string,
@@ -66,6 +74,11 @@ export interface EventDataObject {
   startDate: string,
   tags: string,
   type: string,
+  yearAbsolute?: boolean,
+  yearLocale?: string,
+  yearPrecision?: number,
+  yearScale?: number,
+  yearUnit?: string,
 }
 
 export interface EventItem {
@@ -118,6 +131,11 @@ export interface InternalTimelineArgs {
   type: string | null,
   zoomInLimit: number,
   zoomOutLimit: number,
+  yearAbsolute?: boolean,
+  yearLocale?: string,
+  yearPrecision?: number,
+  yearScale?: number,
+  yearUnit?: string,
 }
 
 export interface MinimalGroup {

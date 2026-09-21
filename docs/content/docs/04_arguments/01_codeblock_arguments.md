@@ -15,6 +15,11 @@ Breaking down the filters:
 - `startDate`: where you want your timeline to initially start displaying
 - `endDate`: where you initially want your timeline to end
 - `dateFormat`: a string with the format you want your dates to be displayed in. See below for acceptable values
+- `yearScale`: an optional positive number by which displayed years are divided
+- `yearUnit`: optional text appended to a scaled year, for example `Tsd`, `Mio`, or `Mrd`
+- `yearLocale`: optional locale used for decimal and thousands separators, for example `de-DE`
+- `yearPrecision`: maximum number of decimal places used for a scaled year (default: `3`)
+- `yearAbsolute`: set to `true` to display negative years without the minus sign
 - `divHeight`: how tall you would like the timeline to be
 - `minDate`: minimum end-cap to prevent scrolling or viewing before this date
 - `maxDate`: maximum end-cap to prevent scrolling or viewing after this date
@@ -40,6 +45,16 @@ Acceptable values for filters:
   - hours:
     - `HH`: **unfiltered**, display as however you pass it
     - `H`: hours, display as `00`
+- large year values:
+  - These arguments only change the displayed `YYYY` value. Sorting continues to use the original year.
+  - `yearScale` accepts any positive number, not only powers of one thousand.
+  - Set **Maximum padding on dates** in the plugin settings to at least the number of digits in the largest year
+    (for example, `10` for `4560000000`) so differently sized years continue to sort correctly.
+  - Example for an event in year `-4560000000`:
+    - `yearScale=1000000000`, `yearUnit=Mrd`, `yearLocale=de-DE`, and `yearAbsolute=true` display `4,56 Mrd`
+    - `yearScale=1000`, `yearUnit=Tsd`, `yearLocale=de-DE`, and `yearAbsolute=true` display `4.560.000 Tsd`
+    - `yearScale=1`, `yearLocale=de-DE`, and `yearAbsolute=true` display `4.560.000.000`
+  - All five values can be overridden on individual events.
 - `startDate`, `endDate`, `minDate`, `maxDate`: use the same format (`YYYY-MM-DD-HH`) as event date parameters
 - `zoomInLimit`:
   - You can either use the built-in timescales, or you can provide a value (in milliseconds) manually. Acceptable values are `day`, `week`, `month-detail`, `month-vague`, and `year`. Do not include to have no restrictions on zooming in (default behaviour).

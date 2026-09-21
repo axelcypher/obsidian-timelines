@@ -46,6 +46,11 @@ A timeline entry can be created using `span` or `div` HTML elements (`div` is th
   data-start-date=""
   data-end-date=""
   data-era=""
+  data-year-scale=""
+  data-year-unit=""
+  data-year-locale=""
+  data-year-precision=""
+  data-year-absolute=""
   data-path=""
   data-tags=""
 > some content </div>

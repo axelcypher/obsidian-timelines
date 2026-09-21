@@ -18,6 +18,22 @@ tags: [timeline, history]
 ---
 ```
 
+Large years can be formatted per event with `yearScale`, `yearUnit`, `yearLocale`, `yearPrecision`, and
+`yearAbsolute`. Kebab-case keys such as `year-scale` are also accepted. For example:
+
+```yaml
+---
+start-date: -4560000000
+year-scale: 1000000000
+year-unit: Mrd
+year-locale: de-DE
+year-precision: 2
+year-absolute: true
+---
+```
+
+This displays `4,56 Mrd` while preserving `-4560000000` for sorting.
+
 <br></br>
 
 Things to note:

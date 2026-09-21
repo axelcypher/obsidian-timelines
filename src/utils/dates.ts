@@ -2,7 +2,7 @@ import { DateTime as LuxonDateTime } from 'luxon'
 
 import { logger } from './debug'
 import { DEFAULT_SETTINGS } from '../constants'
-import { CleanedDateResultObject } from '../types'
+import { CleanedDateResultObject, YearDisplayOptions } from '../types'
 
 /**
  * Create a Datetime Object for sorting or for use as an argument to the vis-timeline constructor
@@ -82,9 +82,10 @@ const buildNumPartsArray = ( dateString: string, isNegative: boolean ): number[]
 export const cleanDate = (
   rawDate: string,
   maxDigits: number = parseInt( DEFAULT_SETTINGS.maxDigits ),
-  formatString: string = DEFAULT_SETTINGS.verticalTimelineDateDisplayFormat
+  formatString: string = DEFAULT_SETTINGS.verticalTimelineDateDisplayFormat,
+  yearDisplayOptions: YearDisplayOptions = {}
 ): CleanedDateResultObject | null => {
-  logger( 'cleanDate | rawDate:', { rawDate, formatString })
+  logger( 'cleanDate | rawDate:', { rawDate, formatString, yearDisplayOptions })
   const normalizedDateString = normalizeDate( rawDate, maxDigits )
   if ( normalizedDateString === null ) {
     return null
@@ -95,7 +96,7 @@ export const cleanDate = (
   
   const fullCleanedDateString = ( isNegative ? '-' : '' ) + normalizedParts.join( '-' )
   let minimizedDateString = minimizeDateString( fullCleanedDateString )
-  let formattedDateString = formatDate( minimizedDateString, formatString )
+  let formattedDateString = formatDate( minimizedDateString, formatString, yearDisplayOptions )
 
   const useUserFormattedString = formatString !== DEFAULT_SETTINGS.verticalTimelineDateDisplayFormat
   if ( useUserFormattedString ) {
@@ -103,7 +104,15 @@ export const cleanDate = (
     const cleanedDateStringFromOriginalParts = ( isNegative ? '-' : '' ) + originalParts.join( '-' )
 
     minimizedDateString = minimizeDateString( cleanedDateStringFromOriginalParts )
-    formattedDateString = formatDate( minimizedDateString, formatString )
+    formattedDateString = formatDate( minimizedDateString, formatString, yearDisplayOptions )
+  }
+
+  const useYearDisplayOptions = hasYearDisplayOptions( yearDisplayOptions )
+  if ( useYearDisplayOptions && !useUserFormattedString ) {
+    const originalParts = buildNumPartsArray( rawDate, isNegative )
+    const cleanedDateStringFromOriginalParts = ( isNegative ? '-' : '' ) + originalParts.join( '-' )
+    const originalMinimizedDateString = minimizeDateString( cleanedDateStringFromOriginalParts )
+    formattedDateString = formatDefaultDateYear( originalMinimizedDateString, yearDisplayOptions )
   }
 
   const year  = normalizedParts[0] * ( isNegative ? -1 : 1 )
@@ -115,7 +124,7 @@ export const cleanDate = (
     cleanedDateString: fullCleanedDateString,
     normalizedDateString,
     originalDateString: rawDate,
-    readableDateString: useUserFormattedString ? formattedDateString : minimizedDateString,
+    readableDateString: useUserFormattedString || useYearDisplayOptions ? formattedDateString : minimizedDateString,
     year,
     month,
     day,
@@ -131,6 +140,53 @@ export const cleanDate = (
   })
   
   return resultObject
+}
+
+const hasYearDisplayOptions = ( options: YearDisplayOptions ): boolean => {
+  return Object.values( options ).some(( value ) => {
+    return value !== undefined
+  })
+}
+
+const formatYear = ( year: string, options: YearDisplayOptions ): string => {
+  if ( !hasYearDisplayOptions( options )) {
+    return year
+  }
+
+  const parsedYear = Number( year )
+  const scale = options.scale ?? 1
+
+  if ( !Number.isFinite( parsedYear ) || !Number.isFinite( scale ) || scale <= 0 ) {
+    return year
+  }
+
+  const precision = Math.min( 20, Math.max( 0, Math.trunc( options.precision ?? 3 )))
+  const scaledYear = ( options.absolute ? Math.abs( parsedYear ) : parsedYear ) / scale
+  let formattedYear: string
+
+  try {
+    formattedYear = new Intl.NumberFormat( options.locale || undefined, {
+      maximumFractionDigits: precision,
+      useGrouping: true,
+    }).format( scaledYear )
+  } catch ( error ) {
+    console.warn( `Invalid yearLocale '${options.locale}', using the system locale instead.`, error )
+    formattedYear = new Intl.NumberFormat( undefined, {
+      maximumFractionDigits: precision,
+      useGrouping: true,
+    }).format( scaledYear )
+  }
+
+  return options.unit ? `${formattedYear} ${options.unit}` : formattedYear
+}
+
+const formatDefaultDateYear = ( dateString: string, options: YearDisplayOptions ): string => {
+  const match = dateString.match( /^(-?\d+)(.*)$/ )
+  if ( !match ) {
+    return dateString
+  }
+
+  return `${formatYear( match[1], options )}${match[2]}`
 }
 
 /** 
@@ -410,7 +466,11 @@ function cascadeDeleteBasedOnMissingPredecessor( dateParts: Record<string, strin
  * 
  * @returns {string}
  */
-export function formatDate( dateString: string, formatString: string ): string {
+export function formatDate(
+  dateString: string,
+  formatString: string,
+  yearDisplayOptions: YearDisplayOptions = {}
+): string {
   const dateRegex = /^(-?\d+)(?:-(-?\d+)(?:-(-?\d+)(?:-(-?\d+))?)?)?$/
   const match = dateString.match( dateRegex )
 
@@ -420,7 +480,7 @@ export function formatDate( dateString: string, formatString: string ): string {
 
   const [, year, month, day, hour] = match
   const dateParts: Record<string, string | undefined> = {
-    YYYY: year, // unfiltered
+    YYYY: formatYear( year, yearDisplayOptions ),
     MM: month,  // unfiltered
     DD: day,    // unfiltered
     HH: hour,   // unfiltered
