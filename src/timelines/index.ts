@@ -1,7 +1,7 @@
 import { DataSet } from 'vis-data'
 
 import { ArrowObject, CombinedTimelineEventData } from '../types'
-import { logger } from '../utils'
+import { compareTimelineDates, logger } from '../utils'
 
 export * from './horizontal'
 export * from './vertical'
@@ -82,11 +82,16 @@ export function sortAndRenderNestedEvents( noteDivs: HTMLDivElement[], timeline:
   while ( currentIndex > 0 && timelineElements[currentIndex - 1]?.classList.contains( 'timeline-tail' )) {
     const previousElement = timelineElements[currentIndex - 1]
     const previousDate = previousElement.getAttribute( 'timeline-date' )
+    if ( !previousDate ) {
+      break
+    }
 
     // create an array of dates including the previous element's date and noteDivs' dates
     const dates = [previousDate, ...noteDivs.map(( note ) => {
       return note.getAttribute( 'timeline-date' ) 
-    })].sort()
+    })].filter(( date ): date is string => {
+      return date !== null
+    }).sort( compareTimelineDates )
   
     // if the previous Date is not the first item in the sorted array, reorder elements
     const previousDateLastIndex = dates.lastIndexOf( previousDate )

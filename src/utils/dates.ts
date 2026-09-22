@@ -295,41 +295,75 @@ const normalizeDate = (
 }
 
 /**
+ * Compare two timeline date strings without converting their years to JavaScript numbers.
+ * This keeps negative and arbitrarily long years in chronological order.
+ *
+ * @returns a negative number when dateA is earlier, a positive number when dateA is later
+ */
+export const compareTimelineDates = ( dateA: string, dateB: string ): number => {
+  if ( dateA === dateB ) {
+    return 0
+  }
+
+  const parseDateParts = ( date: string ) => {
+    const negative = date.startsWith( '-' )
+    const rawParts = ( negative ? date.slice( 1 ) : date ).split( '-' )
+    const parts = rawParts.map(( part ) => {
+      return part.replace( /^0+(?=\d)/, '' ) || '0'
+    })
+
+    return {
+      negative: negative && parts[0] !== '0',
+      parts,
+    }
+  }
+
+  const compareUnsignedParts = ( partA: string, partB: string ): number => {
+    if ( partA.length !== partB.length ) {
+      return partA.length < partB.length ? -1 : 1
+    }
+
+    if ( partA === partB ) {
+      return 0
+    }
+
+    return partA < partB ? -1 : 1
+  }
+
+  const parsedA = parseDateParts( dateA )
+  const parsedB = parseDateParts( dateB )
+
+  if ( parsedA.negative !== parsedB.negative ) {
+    return parsedA.negative ? -1 : 1
+  }
+
+  const yearComparison = compareUnsignedParts( parsedA.parts[0], parsedB.parts[0] )
+  if ( yearComparison !== 0 ) {
+    return parsedA.negative ? -yearComparison : yearComparison
+  }
+
+  const numParts = Math.max( parsedA.parts.length, parsedB.parts.length )
+  for ( let i = 1; i < numParts; i++ ) {
+    const partComparison = compareUnsignedParts( parsedA.parts[i] ?? '0', parsedB.parts[i] ?? '0' )
+    if ( partComparison !== 0 ) {
+      return partComparison
+    }
+  }
+
+  return 0
+}
+
+/**
  * Correctly sort our timeline dates, taking heed of negative dates
  *
  * @param {string[]} timelineDates the array of normalized noteId's (event start dates) for the timeline
  * @param {boolean} sortDirection false for descending, true for ascending
  */
 export const sortTimelineDates = ( timelineDates: string[], sortDirection: boolean ): string[] => {
-  const filterFunc = ( dateStr: string ) => {
-    return dateStr[0] === '-' 
-  }
-
-  const negativeDatesUnsorted = timelineDates.filter( filterFunc )
-  const positiveDates = timelineDates.filter(( date ) => {
-    return !filterFunc( date ) 
-  }).sort()
-
-  const strippedNegativeDates = negativeDatesUnsorted.map(( date ) => {
-    return date.slice( 1 ) 
-  }).sort().reverse()
-  
-  let sortedTimelineDates: string[] = []
-  if ( sortDirection ) {
-    const negativeDates = strippedNegativeDates.map(( date ) => {
-      return `-${date}` 
-    }) ?? []
-
-    sortedTimelineDates = [...negativeDates, ...positiveDates]
-  } else {
-    const negativeDates = strippedNegativeDates.reverse().map(( date ) => {
-      return `-${date}` 
-    }) ?? []
-
-    sortedTimelineDates = [...positiveDates.reverse(), ...negativeDates]
-  }
-  
-  return sortedTimelineDates
+  return [...timelineDates].sort(( dateA, dateB ) => {
+    const comparison = compareTimelineDates( dateA, dateB )
+    return sortDirection ? comparison : -comparison
+  })
 }
 
 function mapMonthValueToName( month: string, abbreviate: boolean = false ): string {

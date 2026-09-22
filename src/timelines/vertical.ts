@@ -1,6 +1,7 @@
 import { sortAndRenderNestedEvents } from '.'
 import { AllNotesData, CardContainer, DivWithCalcFunc } from '../types'
 import {
+  compareTimelineDates,
   createInternalLinkOnNoteCard,
   handleColor,
 } from '../utils'
@@ -93,7 +94,7 @@ export async function buildVerticalTimeline(
       }
 
       // skip events that are of type 'box' or 'point', or if the endDate is invalid
-      if ( ['box', 'point'].includes( type ) || endDate < startDate  || !noteDivs ) {
+      if ( ['box', 'point'].includes( type ) || compareTimelineDates( endDate, startDate ) < 0 || !noteDivs ) {
         continue
       }
 
@@ -108,8 +109,7 @@ export async function buildVerticalTimeline(
         continue // change to break?
       }
 
-      const lastTimelineDate = timelineNotes[lastNormalizedDateOnTimeline]
-      if ( !datedTo[1] || endDate > lastTimelineDate ) {
+      if ( !datedTo[1] || compareTimelineDates( endDate, lastNormalizedDateOnTimeline ) > 0 ) {
         datedTo[1] = `${datedTo[0]} to ${endDateFormatted}`
       }
 
@@ -130,7 +130,7 @@ export async function buildVerticalTimeline(
 
       for ( let i = noteDivs.length - 2; i >= 0; i-- ) {
         const timelineDate = noteDivs[i].getAttribute( 'timeline-date' )
-        if ( timelineDate && ( timelineDate > endDate )) {
+        if ( timelineDate && compareTimelineDates( timelineDate, endDate ) > 0 ) {
           noteDivs[i].before( noteDiv )
         }
       }
