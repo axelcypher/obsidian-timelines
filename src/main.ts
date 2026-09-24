@@ -13,6 +13,84 @@ export default class TimelinesPlugin extends Plugin {
   statusBarItem: HTMLElement
   blocks: TimelineBlockProcessor
   commands: TimelineCommandProcessor
+  eventAttributeObserver: MutationObserver | null = null
+  pendingEventElements = new Set<HTMLElement>()
+  eventAttributeFrame: number | null = null
+
+  private queueEventElementAttributes = ( root: HTMLElement ) => {
+    if ( root.matches( '.ob-timelines' )) {
+      this.pendingEventElements.add( root )
+    }
+
+    root.querySelectorAll<HTMLElement>( '.ob-timelines' ).forEach(( eventElement ) => {
+      this.pendingEventElements.add( eventElement )
+    })
+
+    if ( this.pendingEventElements.size === 0 || this.eventAttributeFrame !== null ) return
+
+    this.eventAttributeFrame = window.requestAnimationFrame(() => {
+      this.eventAttributeFrame = null
+      const eventElements = Array.from( this.pendingEventElements )
+      this.pendingEventElements.clear()
+
+      eventElements.forEach(( eventElement ) => {
+        if ( eventElement.isConnected ) {
+          this.blocks.formatEventElementAttributes( eventElement )
+        }
+      })
+    })
+  }
+
+  private observeEventElementAttributes = () => {
+    const workspaceContainer = this.app.workspace.containerEl
+
+    this.eventAttributeObserver = new MutationObserver(( mutations ) => {
+      mutations.forEach(( mutation ) => {
+        if ( mutation.type === 'attributes' && mutation.target instanceof HTMLElement ) {
+          this.queueEventElementAttributes( mutation.target )
+          return
+        }
+
+        mutation.addedNodes.forEach(( node ) => {
+          if ( node instanceof HTMLElement ) {
+            this.queueEventElementAttributes( node )
+          }
+        })
+      })
+    })
+
+    this.eventAttributeObserver.observe( workspaceContainer, {
+      attributes: true,
+      attributeFilter: [
+        'class',
+        'data-description',
+        'data-end-date',
+        'data-era',
+        'data-start-date',
+        'data-title',
+        'data-year-absolute',
+        'data-year-locale',
+        'data-year-precision',
+        'data-year-scale',
+        'data-year-unit',
+      ],
+      childList: true,
+      subtree: true,
+    })
+
+    this.queueEventElementAttributes( workspaceContainer )
+
+    this.register(() => {
+      this.eventAttributeObserver?.disconnect()
+      this.eventAttributeObserver = null
+      this.pendingEventElements.clear()
+
+      if ( this.eventAttributeFrame !== null ) {
+        window.cancelAnimationFrame( this.eventAttributeFrame )
+        this.eventAttributeFrame = null
+      }
+    })
+  }
 
   initialize = async () => {
     console.log( `Initializing Plugin: ${this.pluginName}` )
@@ -35,6 +113,8 @@ export default class TimelinesPlugin extends Plugin {
     this.registerMarkdownPostProcessor(( el ) => {
       this.blocks.formatEventElementAttributes( el )
     })
+
+    this.observeEventElementAttributes()
 
     this.addCommand({
       id: 'render-static-timeline',
