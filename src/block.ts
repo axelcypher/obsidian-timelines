@@ -1,4 +1,5 @@
-import type { MetadataCache, TFile, Vault } from 'obsidian'
+import { MarkdownRenderChild } from 'obsidian'
+import type { MarkdownPostProcessorContext, MetadataCache, TFile, Vault } from 'obsidian'
 
 import { buildHorizontalTimeline, buildVerticalTimeline, showEmptyTimelineMessage } from './timelines'
 import {
@@ -17,6 +18,7 @@ import {
   createTagList,
   filterMdFiles,
   getEventData,
+  getEventYearDisplayOptions,
   getEventsInFile,
   getImgUrl,
   getNumEventsInFile,
@@ -25,6 +27,30 @@ import {
   setDefaultArgs,
   sortTimelineDates,
 } from './utils'
+
+class VisibleTimelineEventsRenderChild extends MarkdownRenderChild {
+  observer: MutationObserver
+  renderEvents: () => void
+  rootEl: Element
+
+  constructor( containerEl: HTMLElement, rootEl: Element, renderEvents: () => void ) {
+    super( containerEl )
+    this.rootEl = rootEl
+    this.renderEvents = renderEvents
+    this.observer = new MutationObserver(() => {
+      this.renderEvents()
+    })
+  }
+
+  onload() {
+    this.renderEvents()
+    this.observer.observe( this.rootEl, { childList: true, subtree: true })
+  }
+
+  onunload() {
+    this.observer.disconnect()
+  }
+}
 
 export class TimelineBlockProcessor {
   appVault: Vault
@@ -95,11 +121,87 @@ export class TimelineBlockProcessor {
       case 'yearAbsolute':
         this.args[tag] = value.toLowerCase() === 'true'
         break
+      case 'showEvents':
+        this.args[tag] = value.toLowerCase() === 'true'
+        break
       default:
         this.args[tag] = value
         break
       }
     })
+  }
+
+  private getMergedYearDisplayOptions( eventOptions: YearDisplayOptions ): YearDisplayOptions {
+    return {
+      absolute: eventOptions.absolute ?? this.args.yearAbsolute,
+      locale: eventOptions.locale ?? this.args.yearLocale,
+      precision: eventOptions.precision ?? this.args.yearPrecision,
+      scale: eventOptions.scale ?? this.args.yearScale,
+      unit: eventOptions.unit ?? this.args.yearUnit,
+    }
+  }
+
+  private formatVisibleEventElement( eventElement: HTMLElement ): void {
+    const { startDate, endDate, era, title, description } = eventElement.dataset
+    if ( !startDate ) {
+      eventElement.removeAttribute( 'data-timeline-event-label' )
+      eventElement.removeAttribute( 'data-timeline-description-label' )
+      return
+    }
+
+    const maxDigits = parseInt( this.settings.maxDigits )
+    const yearDisplayOptions = this.getMergedYearDisplayOptions(
+      getEventYearDisplayOptions( eventElement )
+    )
+    const cleanedStartDate = cleanDate(
+      startDate, maxDigits, this.args.dateFormat, yearDisplayOptions
+    )
+    const cleanedEndDate = endDate
+      ? cleanDate( endDate, maxDigits, this.args.dateFormat, yearDisplayOptions )
+      : null
+
+    if ( !cleanedStartDate ) {
+      return
+    }
+
+    const eraSuffix = era ? ` ${era}` : ''
+    const formattedStartDate = cleanedStartDate.readableDateString + eraSuffix
+    const hasDistinctEndDate = cleanedEndDate
+      && cleanedEndDate.normalizedDateString !== cleanedStartDate.normalizedDateString
+    const formattedDate = hasDistinctEndDate
+      ? `${formattedStartDate} – ${cleanedEndDate.readableDateString}${eraSuffix}`
+      : formattedStartDate
+    const eventLabel = title ? `${formattedDate}: ${title}` : formattedDate
+
+    eventElement.dataset.timelineEventLabel = eventLabel
+    eventElement.dataset.timelineDescriptionLabel = eventElement.textContent?.trim() ? '' : description ?? ''
+  }
+
+  private setupVisibleEventElements(
+    el: HTMLElement,
+    ctx?: MarkdownPostProcessorContext
+  ): void {
+    el.classList.toggle( 'ob-timelines-show-events', this.args.showEvents )
+    if ( !this.args.showEvents ) {
+      return
+    }
+
+    const rootEl = el.closest( '.markdown-preview-view, .markdown-source-view, .markdown-rendered' )
+      ?? el.parentElement
+    if ( !rootEl ) {
+      return
+    }
+
+    const renderEvents = () => {
+      rootEl.querySelectorAll<HTMLElement>( '.ob-timelines' ).forEach(( eventElement ) => {
+        this.formatVisibleEventElement( eventElement )
+      })
+    }
+
+    renderEvents()
+    if ( ctx ) {
+      ctx.addChild( new VisibleTimelineEventsRenderChild( el, rootEl, renderEvents ))
+    }
   }
 
   /**
@@ -207,13 +309,13 @@ export class TimelineBlockProcessor {
 
         const imgUrl = getImgUrl( this.appVault, eventImg )
         const maxDigits = parseInt( this.settings.maxDigits )
-        const yearDisplayOptions: YearDisplayOptions = {
-          absolute: yearAbsolute ?? this.args.yearAbsolute,
-          locale: yearLocale ?? this.args.yearLocale,
-          precision: yearPrecision ?? this.args.yearPrecision,
-          scale: yearScale ?? this.args.yearScale,
-          unit: yearUnit ?? this.args.yearUnit,
-        }
+        const yearDisplayOptions = this.getMergedYearDisplayOptions({
+          absolute: yearAbsolute,
+          locale: yearLocale,
+          precision: yearPrecision,
+          scale: yearScale,
+          unit: yearUnit,
+        })
         const cleanedStartDateObject = cleanDate(
           startDate, maxDigits, this.args.dateFormat, yearDisplayOptions
         )
@@ -265,11 +367,13 @@ export class TimelineBlockProcessor {
   async run(
     source: string,
     el: HTMLElement,
+    ctx?: MarkdownPostProcessorContext,
   ): Promise<void> {
     this.setup()
 
     // read arguments
     await this.readArguments( source )
+    this.setupVisibleEventElements( el, ctx )
     logger( 'run | this.args', this.args )
 
     logger( 'run | # of files and tags', { fileCount: this.files.length, tags: this.args.tags })

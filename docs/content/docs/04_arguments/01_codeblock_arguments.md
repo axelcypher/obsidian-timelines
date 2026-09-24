@@ -15,6 +15,7 @@ Breaking down the filters:
 - `startDate`: where you want your timeline to initially start displaying
 - `endDate`: where you initially want your timeline to end
 - `dateFormat`: a string with the format you want your dates to be displayed in. See below for acceptable values
+- `showEvents`: set to `true` to show the HTML event elements in the note; defaults to `false`
 - `yearScale`: an optional positive number by which displayed years are divided
 - `yearUnit`: optional text appended to a scaled year, for example `Tsd`, `Mio`, or `Mrd`
 - `yearLocale`: optional locale used for decimal and thousands separators, for example `de-DE`
@@ -28,6 +29,10 @@ Breaking down the filters:
 - `type`: horizontal-specific key. Pass `flat` in order to render a horizontal timeline
 
 Acceptable values for filters:
+- `showEvents`:
+  - `false` (default): keep source HTML event elements hidden
+  - `true`: display source HTML event elements with their formatted date, title, and description
+  - Per-event year formatting attributes override the corresponding codeblock year formatting arguments.
 - `dateFormat`:
   - set to an empty string `""` by default
   - years:

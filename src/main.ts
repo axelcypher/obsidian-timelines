@@ -29,7 +29,7 @@ export default class TimelinesPlugin extends Plugin {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     this.registerMarkdownCodeBlockProcessor( 'ob-timeline', async ( source, el, ctx ) => {
-      await this.blocks.run( source, el )
+      await this.blocks.run( source, el, ctx )
     })
 
     this.addCommand({

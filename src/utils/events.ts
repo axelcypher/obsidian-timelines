@@ -7,7 +7,8 @@ import {
   EventItem,
   EventTypeNumbers,
   FrontMatterKeys,
-  GetFileDataInput
+  GetFileDataInput,
+  YearDisplayOptions,
 } from '../types'
 import { findMatchingFrontMatterKey } from './frontmatter'
 import { logger } from './debug'
@@ -160,20 +161,7 @@ export const getEventData = (
   const tags           = retrieveEventValue( eventObject, 'tags', '' ) ?? ''
   const type           = retrieveEventValue( eventObject, 'type', 'box' )
   const showOnTimeline = retrieveEventValue( eventObject, 'showOnTimeline', 'false' )
-  const rawYearAbsolute = retrieveOptionalEventValue( eventObject, 'yearAbsolute', ['yearAbsolute', 'year-absolute'] )
-  const rawYearLocale = retrieveOptionalEventValue( eventObject, 'yearLocale', ['yearLocale', 'year-locale'] )
-  const rawYearPrecision = retrieveOptionalEventValue( eventObject, 'yearPrecision', ['yearPrecision', 'year-precision'] )
-  const rawYearScale = retrieveOptionalEventValue( eventObject, 'yearScale', ['yearScale', 'year-scale'] )
-  const rawYearUnit = retrieveOptionalEventValue( eventObject, 'yearUnit', ['yearUnit', 'year-unit'] )
-  const hasYearDisplayOptions = [
-    rawYearAbsolute,
-    rawYearLocale,
-    rawYearPrecision,
-    rawYearScale,
-    rawYearUnit,
-  ].some(( value ) => {
-    return value !== undefined && value !== ''
-  })
+  const yearDisplayOptions = getEventYearDisplayOptions( eventObject )
 
   const eventData: EventDataObject = {
     classes,
@@ -190,15 +178,42 @@ export const getEventData = (
     startDate,
     tags,
     type,
-    yearAbsolute: parseOptionalBoolean( rawYearAbsolute ),
-    yearLocale: rawYearLocale,
-    yearPrecision: parseOptionalNumber( rawYearPrecision ),
-    yearScale: parseOptionalNumber( rawYearScale ),
-    yearUnit: hasYearDisplayOptions ? rawYearUnit : undefined,
+    yearAbsolute: yearDisplayOptions.absolute,
+    yearLocale: yearDisplayOptions.locale,
+    yearPrecision: yearDisplayOptions.precision,
+    yearScale: yearDisplayOptions.scale,
+    yearUnit: yearDisplayOptions.unit,
   }
 
   logger( 'getEventData | full event:', { eventData })
   return eventData
+}
+
+export const getEventYearDisplayOptions = (
+  eventObject: HTMLElement | FrontMatterCache
+): YearDisplayOptions => {
+  const rawYearAbsolute = retrieveOptionalEventValue( eventObject, 'yearAbsolute', ['yearAbsolute', 'year-absolute'] )
+  const rawYearLocale = retrieveOptionalEventValue( eventObject, 'yearLocale', ['yearLocale', 'year-locale'] )
+  const rawYearPrecision = retrieveOptionalEventValue( eventObject, 'yearPrecision', ['yearPrecision', 'year-precision'] )
+  const rawYearScale = retrieveOptionalEventValue( eventObject, 'yearScale', ['yearScale', 'year-scale'] )
+  const rawYearUnit = retrieveOptionalEventValue( eventObject, 'yearUnit', ['yearUnit', 'year-unit'] )
+  const hasYearDisplayOptions = [
+    rawYearAbsolute,
+    rawYearLocale,
+    rawYearPrecision,
+    rawYearScale,
+    rawYearUnit,
+  ].some(( value ) => {
+    return value !== undefined && value !== ''
+  })
+
+  return {
+    absolute: parseOptionalBoolean( rawYearAbsolute ),
+    locale: rawYearLocale || undefined,
+    precision: parseOptionalNumber( rawYearPrecision ),
+    scale: parseOptionalNumber( rawYearScale ),
+    unit: hasYearDisplayOptions ? rawYearUnit : undefined,
+  }
 }
 
 const retrieveOptionalEventValue = (

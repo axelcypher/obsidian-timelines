@@ -9,7 +9,21 @@ toc: false
 
 <br></br>
 
-Timeline span and div entries (.ob-timelines class) are hidden in preview by default, however, if you wish to display content, try adding (in your Obsidian settings) a CSS snippet like this: 
+Timeline span and div entries (`.ob-timelines` class) are hidden by default. They can be displayed for a note by
+adding `showEvents=true` to its timeline codeblock:
+
+````text
+```ob-timeline
+tags=timeline
+showEvents=true
+```
+````
+
+The displayed event includes its formatted start and end dates, title, and description. Formatting attributes on the
+event, such as `data-year-scale`, `data-year-unit`, and `data-year-locale`, take precedence over the corresponding
+codeblock arguments.
+
+Alternatively, a custom CSS snippet can force events to be visible globally:
 
 ```css
 /* Render the ob-timelines span or div elements as inline blocks that use an italic font */

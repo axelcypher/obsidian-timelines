@@ -28,6 +28,7 @@ export function setDefaultArgs( settings: TimelinesSettings ): InternalTimelineA
     endDate: buildTimelineDate( '3000' )!,
     minDate: buildTimelineDate( '-3000' )!,
     maxDate: buildTimelineDate( '3000' )!,
+    showEvents: false,
     type: null,
 
     // have to put it to one more than the default max so that min actually works
