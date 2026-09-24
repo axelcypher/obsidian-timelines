@@ -9,34 +9,37 @@ toc: false
 
 <br></br>
 
-Timeline span and div entries (`.ob-timelines` class) are hidden by default. They can be displayed for a note by
-adding `showEvents=true` to its timeline codeblock:
+Timeline span and div entries (`.ob-timelines` class) are hidden by default. The plugin always adds two generated
+attributes to rendered HTML events:
 
-````text
-```ob-timeline
-tags=timeline
-showEvents=true
-```
-````
+- `data-timeline-event-label`: formatted start/end date and title
+- `data-timeline-description-label`: description when the element has no body text
 
-The displayed event includes its formatted start and end dates, title, and description. Formatting attributes on the
-event, such as `data-year-scale`, `data-year-unit`, and `data-year-locale`, take precedence over the corresponding
-codeblock arguments.
+Date labels honor the formatting attributes on each event, including `data-year-scale`, `data-year-unit`,
+`data-year-locale`, `data-year-precision`, and `data-year-absolute`.
 
-Alternatively, a custom CSS snippet can force events to be visible globally:
+Use an Obsidian CSS snippet to display the events and their generated attributes:
 
 ```css
-/* Render the ob-timelines span or div elements as inline blocks that use an italic font */
 .ob-timelines {
-  display: inline-block !important;
-  font-style: italic;
+  display: block !important;
+  margin: 0.75em 0;
+  padding: 0.5em 0.75em;
+  border-left: 3px solid var(--text-accent);
+  background: var(--background-secondary);
 }
 
-/* Use the before pseudo element to display attributes of the span or div */
 .ob-timelines::before {
-  content: "🔖 " attr(data-start-date) ": " attr(data-title) ".";
-  color: lilac;
-  font-weight: 500;
+  content: attr(data-timeline-event-label);
+  display: block;
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.ob-timelines::after {
+  content: attr(data-timeline-description-label);
+  display: block;
+  color: var(--text-normal);
 }
 ```
 
@@ -50,9 +53,7 @@ Using the above snippet, a span like this:
 </div>
 ```
 
-would be rendered (in Live Preview mode) as: 
-
-![styled span example](./images/styled-event-span.png)
+The generated labels are available in Reading and Live Preview modes after the event has been processed by the plugin.
 
 > **Note:** It is *highly* recommended to use `div` elements for HTML events rather than `span` elements.
 

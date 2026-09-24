@@ -126,7 +126,6 @@ export interface InternalTimelineArgs {
   endDate: Date,
   maxDate: Date,
   minDate: Date,
-  showEvents: boolean,
   startDate: Date,
   tags: ParsedTagObject,
   type: string | null,

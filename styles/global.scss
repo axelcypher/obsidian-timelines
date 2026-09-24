@@ -6,29 +6,6 @@
   display: none;
 }
 
-:is(.markdown-preview-view, .markdown-source-view, .markdown-rendered):has(.ob-timelines-show-events) {
-  .ob-timelines {
-    display: block;
-    margin: 0.75em 0;
-    padding: 0.5em 0.75em;
-    border-left: 3px solid var(--text-accent);
-    background: var(--background-secondary);
-
-    &::before {
-      content: attr(data-timeline-event-label);
-      display: block;
-      color: var(--text-accent);
-      font-weight: 600;
-    }
-
-    &::after {
-      content: attr(data-timeline-description-label);
-      display: block;
-      color: var(--text-normal);
-    }
-  }
-}
-
 .empty-timeline {
   color: red;
 }

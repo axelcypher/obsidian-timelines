@@ -1,5 +1,4 @@
-import { MarkdownRenderChild } from 'obsidian'
-import type { MarkdownPostProcessorContext, MetadataCache, TFile, Vault } from 'obsidian'
+import type { MetadataCache, TFile, Vault } from 'obsidian'
 
 import { buildHorizontalTimeline, buildVerticalTimeline, showEmptyTimelineMessage } from './timelines'
 import {
@@ -27,30 +26,6 @@ import {
   setDefaultArgs,
   sortTimelineDates,
 } from './utils'
-
-class VisibleTimelineEventsRenderChild extends MarkdownRenderChild {
-  observer: MutationObserver
-  renderEvents: () => void
-  rootEl: Element
-
-  constructor( containerEl: HTMLElement, rootEl: Element, renderEvents: () => void ) {
-    super( containerEl )
-    this.rootEl = rootEl
-    this.renderEvents = renderEvents
-    this.observer = new MutationObserver(() => {
-      this.renderEvents()
-    })
-  }
-
-  onload() {
-    this.renderEvents()
-    this.observer.observe( this.rootEl, { childList: true, subtree: true })
-  }
-
-  onunload() {
-    this.observer.disconnect()
-  }
-}
 
 export class TimelineBlockProcessor {
   appVault: Vault
@@ -121,9 +96,6 @@ export class TimelineBlockProcessor {
       case 'yearAbsolute':
         this.args[tag] = value.toLowerCase() === 'true'
         break
-      case 'showEvents':
-        this.args[tag] = value.toLowerCase() === 'true'
-        break
       default:
         this.args[tag] = value
         break
@@ -141,26 +113,27 @@ export class TimelineBlockProcessor {
     }
   }
 
-  private formatVisibleEventElement( eventElement: HTMLElement ): void {
+  private formatSingleEventElementAttributes( eventElement: HTMLElement ): void {
     const { startDate, endDate, era, title, description } = eventElement.dataset
+    const descriptionLabel = eventElement.textContent?.trim() ? '' : description ?? ''
     if ( !startDate ) {
-      eventElement.removeAttribute( 'data-timeline-event-label' )
-      eventElement.removeAttribute( 'data-timeline-description-label' )
+      eventElement.dataset.timelineEventLabel = title ?? ''
+      eventElement.dataset.timelineDescriptionLabel = descriptionLabel
       return
     }
 
     const maxDigits = parseInt( this.settings.maxDigits )
-    const yearDisplayOptions = this.getMergedYearDisplayOptions(
-      getEventYearDisplayOptions( eventElement )
-    )
+    const yearDisplayOptions = getEventYearDisplayOptions( eventElement )
     const cleanedStartDate = cleanDate(
-      startDate, maxDigits, this.args.dateFormat, yearDisplayOptions
+      startDate, maxDigits, this.settings.verticalTimelineDateDisplayFormat, yearDisplayOptions
     )
     const cleanedEndDate = endDate
-      ? cleanDate( endDate, maxDigits, this.args.dateFormat, yearDisplayOptions )
+      ? cleanDate( endDate, maxDigits, this.settings.verticalTimelineDateDisplayFormat, yearDisplayOptions )
       : null
 
     if ( !cleanedStartDate ) {
+      eventElement.dataset.timelineEventLabel = title ? `${startDate}: ${title}` : startDate
+      eventElement.dataset.timelineDescriptionLabel = descriptionLabel
       return
     }
 
@@ -174,34 +147,23 @@ export class TimelineBlockProcessor {
     const eventLabel = title ? `${formattedDate}: ${title}` : formattedDate
 
     eventElement.dataset.timelineEventLabel = eventLabel
-    eventElement.dataset.timelineDescriptionLabel = eventElement.textContent?.trim() ? '' : description ?? ''
+    eventElement.dataset.timelineDescriptionLabel = descriptionLabel
   }
 
-  private setupVisibleEventElements(
-    el: HTMLElement,
-    ctx?: MarkdownPostProcessorContext
-  ): void {
-    el.classList.toggle( 'ob-timelines-show-events', this.args.showEvents )
-    if ( !this.args.showEvents ) {
-      return
+  formatEventElementAttributes( el: HTMLElement ): void {
+    const eventElements: HTMLElement[] = []
+    if ( el.matches( '.ob-timelines' )) {
+      eventElements.push( el )
     }
 
-    const rootEl = el.closest( '.markdown-preview-view, .markdown-source-view, .markdown-rendered' )
-      ?? el.parentElement
-    if ( !rootEl ) {
-      return
-    }
-
-    const renderEvents = () => {
-      rootEl.querySelectorAll<HTMLElement>( '.ob-timelines' ).forEach(( eventElement ) => {
-        this.formatVisibleEventElement( eventElement )
-      })
-    }
-
-    renderEvents()
-    if ( ctx ) {
-      ctx.addChild( new VisibleTimelineEventsRenderChild( el, rootEl, renderEvents ))
-    }
+    eventElements.push( ...Array.from( el.querySelectorAll<HTMLElement>( '.ob-timelines' )))
+    eventElements.forEach(( eventElement ) => {
+      try {
+        this.formatSingleEventElementAttributes( eventElement )
+      } catch ( error ) {
+        console.warn( 'Could not format timeline event attributes.', { eventElement, error })
+      }
+    })
   }
 
   /**
@@ -367,13 +329,11 @@ export class TimelineBlockProcessor {
   async run(
     source: string,
     el: HTMLElement,
-    ctx?: MarkdownPostProcessorContext,
   ): Promise<void> {
     this.setup()
 
     // read arguments
     await this.readArguments( source )
-    this.setupVisibleEventElements( el, ctx )
     logger( 'run | this.args', this.args )
 
     logger( 'run | # of files and tags', { fileCount: this.files.length, tags: this.args.tags })
