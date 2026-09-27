@@ -1,10 +1,10 @@
 {
-  "id": "timelines-revamped-2026",
-  "name": "Timelines (Revamped 2026)",
-  "version": "2.5.3",
+  "id": "axlc-timelines-revamped",
+  "name": "Timelines (Revamped)",
+  "version": "2.6.0",
   "minAppVersion": "0.10.11",
-  "description": "Successor to darakah's Timelines and seanlowes Timelines (Revamped) plugins: Generate a chronological timeline in which all 'events' are notes that include a specific tag or set of tags.",
+  "description": "Generate a chronological timeline in which all 'events' are notes that include a specific tag or set of tags. Private revamp of Timelines (Revamped) by Sean Lowe, based on Timelines by Darakah.",
   "author": "axelcypher",
-  "authorUrl": "https://github.com/axelcypher/",
+  "authorUrl": "https://github.com/axelcypher",
   "isDesktopOnly": false
 }

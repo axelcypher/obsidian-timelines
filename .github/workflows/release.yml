@@ -1,0 +1,78 @@
+# Einheitlicher Build- & Release-Workflow für alle Revamped-Plugins.
+# Quelle: obsidian-plugins/_shared/workflows/release.yml
+# NICHT im Plugin-Repo direkt bearbeiten, sondern hier ändern und mit
+# sync-workflows.ps1 in alle Repos kopieren (siehe AGENTS.md).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Bestehender Tag (x.y.z), der gebaut und veröffentlicht werden soll
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate manifest
+        run: |
+          node -e '
+            const m = require("./manifest.json");
+            const tag = process.env.TAG;
+            const fail = (msg) => { console.error("::error::" + msg); process.exit(1); };
+            if (m.version !== tag) fail(`manifest.json version ${m.version} != tag ${tag}`);
+            if (!/^axlc-[a-z0-9-]+-revamped$/.test(m.id)) fail(`id "${m.id}" must match axlc-<name>-revamped`);
+            if (!m.name.endsWith(" (Revamped)")) fail(`name "${m.name}" must end with " (Revamped)"`);
+            if (m.author !== "axelcypher") fail(`author must be axelcypher`);
+          '
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci
+          elif [ -f package.json ]; then npm install
+          fi
+
+      - name: Build
+        run: |
+          if [ -f package.json ]; then npm run build --if-present; fi
+
+      - name: Collect release assets
+        run: |
+          # Build-Ausgabe liegt in dist/ oder im Repo-Stamm
+          if [ -f dist/main.js ]; then SRC=dist; else SRC=.; fi
+          mkdir -p release
+          cp "$SRC/main.js" release/
+          cp manifest.json release/
+          if [ -f "$SRC/styles.css" ]; then cp "$SRC/styles.css" release/; fi
+          ls -la release
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber
+          else
+            gh release create "$TAG" release/* --title "$TAG" --generate-notes --verify-tag
+          fi

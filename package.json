@@ -1,7 +1,8 @@
 {
-  "name": "timelines-revamped",
-  "version": "2.5.3",
-  "description": "Generate a chronological timeline in which all 'events' are notes that include a specific tag or set of tags.",
+  "name": "axlc-timelines-revamped",
+  "version": "2.6.0",
+  "private": true,
+  "description": "Generate a chronological timeline in which all 'events' are notes that include a specific tag or set of tags. Private revamp of Timelines (Revamped) by Sean Lowe, based on Timelines by Darakah.",
   "main": "main.js",
   "scripts": {
     "docs": "hugo -s docs/ server",
@@ -15,7 +16,6 @@
     "v": "node -v"
   },
   "keywords": [],
-  "author": "",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",
@@ -41,5 +41,10 @@
     "node": "22.2.0",
     "timeline-arrows": "^4.6.0",
     "vis-timeline": "^7.7.3"
+  },
+  "author": "axelcypher",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/axelcypher/obsidian-timelines.git"
   }
 }
